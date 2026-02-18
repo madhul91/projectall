@@ -1,0 +1,95 @@
+name: DevOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  IMAGE_NAME: madhul423/devops-pro:latest
+  TF_VERSION: 1.6.6
+
+jobs:
+
+  build-push-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+
+    # 1. Checkout Code
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+
+    # 2. Docker Login
+    - name: Login to DockerHub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+
+    # 3. Build Docker Image
+    - name: Build Docker Image
+      run: |
+        docker build -t $IMAGE_NAME:${{ github.sha }} .
+
+
+    # 4. Push Docker Image
+    - name: Push Docker Image
+      run: |
+        docker push $IMAGE_NAME:${{ github.sha }}
+
+
+    # 5. Setup Terraform
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: $TF_VERSION
+
+
+    # 6. Terraform Init
+    - name: Terraform Init
+      working-directory: terraform
+      run: terraform init
+
+
+    # 7. Terraform Apply (Auto approve)
+    - name: Terraform Apply
+      working-directory: terraform
+      run: terraform apply -auto-approve
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+
+
+     
+    # 8. Get Public IP from Terraform
+    - name: Get Server IP
+      id: tf_output
+      working-directory: terraform
+      run: |
+        echo "ip=$(terraform output -raw public_ip)" >> $GITHUB_OUTPUT
+
+    # 9. Setup SSH Key for Ansible
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/first-keypair.pem
+        chmod 600 ~/.ssh/first-keypair.pem
+
+
+    # 10. Install Ansible
+    - name: Install Ansible
+      run: |
+        sudo apt update
+        sudo apt install -y ansible
+
+
+    # 11. Run Ansible Playbook
+    - name: Run Ansible
+      run: |
+        ansible-playbook -i "${{ steps.tf_output.outputs.ip }}," \
+        --private-key ~/.ssh/first-keypair.pem \
+        -u ubuntu \
+        ansible/deploy.yml \
+        --extra-vars "image=$IMAGE_NAME:${{ github.sha }}"
