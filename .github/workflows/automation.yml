@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
 
 env:
-  IMAGE_NAME: madhul423/devops-sre
+  IMAGE_NAME: madhul423/devops-sre2
   TF_VERSION: 1.6.6
 
 jobs:
@@ -40,56 +40,4 @@ jobs:
         docker push $IMAGE_NAME:${{ github.sha }}
 
 
-    # 5. Setup Terraform
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: $TF_VERSION
-
-
-    # 6. Terraform Init
-    - name: Terraform Init
-      working-directory: terraform
-      run: terraform init
-
-
-    # 7. Terraform Apply (Auto approve)
-    - name: Terraform Apply
-      working-directory: terraform
-      run: terraform apply -auto-approve
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
-
-
-     
-    # 8. Get Public IP from Terraform
-    - name: Get Server IP
-      id: tf_output
-      working-directory: terraform
-      run: |
-        echo "ip=$(terraform output -raw public_ip)" >> $GITHUB_OUTPUT
-
-    # 9. Setup SSH Key for Ansible
-    - name: Setup SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/first-keypair.pem
-        chmod 600 ~/.ssh/first-keypair.pem
-
-
-    # 10. Install Ansible
-    - name: Install Ansible
-      run: |
-        sudo apt update
-        sudo apt install -y ansible
-
-
-    # 11. Run Ansible Playbook
-    - name: Run Ansible
-      run: |
-        ansible-playbook -i "${{ steps.tf_output.outputs.ip }}," \
-        --private-key ~/.ssh/first-keypair.pem \
-        -u ubuntu \
-        ansible/deploy.yml \
-        --extra-vars "image=$IMAGE_NAME:${{ github.sha }}"
+   
