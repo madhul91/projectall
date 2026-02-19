@@ -13,12 +13,6 @@
         name: docker.io
         state: present
 
-    - name: Add ubuntu user to docker group
-      user:
-        name: ubuntu
-        groups: docker
-        append: yes
-
     - name: Start Docker
       service:
         name: docker
@@ -26,9 +20,9 @@
         enabled: true
 
     - name: Pull Docker Image
-      command: docker pull madhul423/devops-sre3:latest
+      command: docker pull {{ image }}
 
-    - name: Stop old container (if running)
+    - name: Stop old container
       command: docker stop mycloud
       ignore_errors: yes
 
@@ -37,4 +31,4 @@
       ignore_errors: yes
 
     - name: Run new container
-      command: docker run -d -p 8098:80 --restart always --name mycloud madhul423/devops-sre3:latest
+      command: docker run -d -p 8098:80 --restart always --name mycloud {{ image }}
