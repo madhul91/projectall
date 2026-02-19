@@ -17,7 +17,7 @@ data "aws_subnets" "default" {
 
 
 resource "aws_security_group" "devops_sg" {
-  name   = "devops-sg23"
+  name   = "devops-sg234"
   vpc_id = data.aws_vpc.default.id
 
   ingress {
