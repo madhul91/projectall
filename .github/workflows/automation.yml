@@ -54,7 +54,7 @@ jobs:
 
 
     # 7. Terraform Apply (Auto approve)
-    - name: Terraform Apply
+    - name: Terraform Apply in
       working-directory: terraform
       run: terraform apply -auto-approve
       env:
