@@ -1,5 +1,5 @@
 - name: Auto Deploy Docker Container
-  hosts: web
+  hosts: all
   become: true
 
   tasks:
