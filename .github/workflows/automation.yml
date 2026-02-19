@@ -2,14 +2,13 @@ name: DevOps CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 env:
   IMAGE_NAME: madhul423/devops-sre3
   TF_VERSION: 1.6.6
 
 jobs:
-
   build-push-deploy:
     runs-on: ubuntu-latest
 
@@ -19,7 +18,6 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-
     # 2. Docker Login
     - name: Login to DockerHub
       uses: docker/login-action@v3
@@ -27,75 +25,70 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-
     # 3. Build Docker Image
     - name: Build Docker Image
-      run: |
-        docker build -t $IMAGE_NAME:${{ github.sha }} .
-
+      run: docker build -t $IMAGE_NAME:${{ github.sha }} .
 
     # 4. Push Docker Image
     - name: Push Docker Image
-      run: |
-        docker push $IMAGE_NAME:${{ github.sha }}
+      run: docker push $IMAGE_NAME:${{ github.sha }}
 
-
+    # 5. Check AWS Credentials
     - name: Check AWS Identity
       run: aws sts get-caller-identity
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-    
 
-    # 5. Setup Terraform
+    # 6. Setup Terraform
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
         terraform_version: $TF_VERSION
 
-
-    # 6. Terraform Init
+    # 7. Terraform Init
     - name: Terraform Init
       working-directory: terraform
       run: terraform init
 
-
-    # 7. Terraform Apply (Auto approve)
-    - name: Terraform Apply in
+    # 8. Terraform Apply
+    - name: Terraform Apply
       working-directory: terraform
       run: terraform apply -auto-approve
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-
-    # 8. Get Public IP from Terraform
+    # 9. Get EC2 Public IP
     - name: Get Server IP
       id: tf_output
       working-directory: terraform
       run: |
         echo "ip=$(terraform output -raw public_ip)" >> $GITHUB_OUTPUT
 
-
-    # 9. Setup SSH Key for Ansible
+    # 10. Setup SSH Key
     - name: Setup SSH
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/first-keypair.pem
         chmod 600 ~/.ssh/first-keypair.pem
 
-
-    # 10. Install Ansible
+    # 11. Install Ansible
     - name: Install Ansible
       run: |
         sudo apt update
         sudo apt install -y ansible
 
+    # 12. Add EC2 to known_hosts
+    - name: Add EC2 to known_hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ steps.tf_output.outputs.ip }} >> ~/.ssh/known_hosts
 
-    # 11. Run Ansible Playbook
+    # 13. Run Ansible Playbook
     - name: Run Ansible
       run: |
-        ansible-playbook -i "${{ steps.tf_output.outputs.ip }}," \
+        ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i "${{ steps.tf_output.outputs.ip }}," \
         --private-key ~/.ssh/first-keypair.pem \
         -u ubuntu \
         ansible/deploy.yml \
