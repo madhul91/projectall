@@ -66,9 +66,13 @@ jobs:
       run: |
         echo "ip=$(terraform output -raw public_ip)" >> $GITHUB_OUTPUT
 
-    - name: Wait for EC2 to be Ready
-      run: sleep 60
-    
+    - name: Wait for SSH to be Available
+      run: |
+        for i in {1..20}; do
+          nc -zv ${{ steps.tf_output.outputs.ip }} 22 && break
+          echo "Waiting for SSH..."
+          sleep 10
+        done
 
     # 10. Setup SSH Key
     - name: Setup SSH
