@@ -8,7 +8,12 @@ data "aws_vpc" "default" {
 }
 
 
-data "aws_subnets" "default" {
+data "aws_subnet" "public_subnet" {
+  filter {
+    name   = "map-public-ip-on-launch"
+    values = ["true"]
+  }
+
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.default.id]
@@ -17,7 +22,7 @@ data "aws_subnets" "default" {
 
 
 resource "aws_security_group" "devops_sg" {
-  name   = "devops-sg23456890"
+  name   = "devops-sg234568901"
   vpc_id = data.aws_vpc.default.id
 
   ingress {
@@ -57,7 +62,7 @@ resource "aws_instance" "devops_ec2" {
   instance_type = "t3.micro"
   key_name      = var.key_name
 
-  subnet_id              = data.aws_subnets.default.ids[0]
+  subnet_id              = data.aws_subnet.public_subnet.id
   vpc_security_group_ids = [aws_security_group.devops_sg.id]
 
   associate_public_ip_address = true
