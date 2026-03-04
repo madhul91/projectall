@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-website
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: static-app
+
+  template:
+    metadata:
+      labels:
+        app: static-app
+
+    spec:
+      containers:
+        - name: node-container
+          image: madhul423/devops-sre4
+          ports:
+            - containerPort: 3000
