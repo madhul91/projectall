@@ -66,6 +66,10 @@ jobs:
       run: |
         echo "ip=$(terraform output -raw public_ip)" >> $GITHUB_OUTPUT
 
+    - name: Wait for EC2 to be Ready
+      run: sleep 60
+    
+
     # 10. Setup SSH Key
     - name: Setup SSH
       run: |
