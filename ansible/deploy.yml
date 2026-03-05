@@ -25,6 +25,8 @@
         groups: docker
         append: yes
 
+    - name: Reset ssh connection
+      meta: reset_connection
 
     # -------- INSTALL MINIKUBE --------
 
@@ -34,7 +36,6 @@
         dest: /usr/local/bin/minikube
         mode: '0755'
 
-
     # -------- INSTALL KUBECTL --------
 
     - name: Install kubectl
@@ -42,24 +43,27 @@
         name: kubectl
         classic: yes
 
+    # -------- WAIT FOR DOCKER --------
+
+    - name: Wait for docker
+      pause:
+        seconds: 30
 
     # -------- START MINIKUBE --------
 
     - name: Start Minikube
-      shell: nohup minikube start --driver=docker --force > minikube.log 2>&1 &
-
-    - name: Wait for cluster
-      pause:
-        seconds: 60  
-
+      become_user: ubuntu
+      shell: minikube start --driver=docker
+      args:
+        executable: /bin/bash
 
     # -------- VERIFY CLUSTER --------
 
     - name: Check Nodes
+      become_user: ubuntu
       command: kubectl get nodes
 
-
-    # -------- CREATE K8s FILES ON SERVER --------
+    # -------- COPY FILES --------
 
     - name: Copy Deployment File
       copy:
@@ -71,7 +75,6 @@
         src: ../kubernetes/service.yml
         dest: /home/ubuntu/service.yml
 
-
     # -------- DEPLOY APP --------
 
     - name: Apply Deployment
@@ -82,13 +85,11 @@
       become_user: ubuntu
       command: kubectl apply -f /home/ubuntu/service.yml
 
-
     # -------- UPDATE IMAGE --------
 
     - name: Update Image
       become_user: ubuntu
       command: kubectl set image deployment/static-website node-container={{ image }}
-
 
     - name: Wait for Rollout
       become_user: ubuntu
