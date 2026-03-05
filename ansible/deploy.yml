@@ -56,7 +56,6 @@
     # -------- VERIFY CLUSTER --------
 
     - name: Check Nodes
-      become_user: ubuntu
       command: kubectl get nodes
 
 
