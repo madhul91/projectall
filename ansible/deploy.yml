@@ -1,4 +1,4 @@
-- name: Auto Deploy Docker Container
+- name: Deploy App to Minikube
   hosts: all
   become: true
 
@@ -19,16 +19,20 @@
         state: started
         enabled: true
 
-    - name: Pull Docker Image
-      command: docker pull {{ image }}
+    - name: Install kubectl
+      snap:
+        name: kubectl
+        classic: yes
 
-    - name: Stop old container
-      command: docker stop mycloud
+    - name: Start Minikube (if not running)
+      become_user: ubuntu
+      command: minikube start --driver=docker
       ignore_errors: yes
 
-    - name: Remove old container
-      command: docker rm mycloud
-      ignore_errors: yes
+    - name: Update Kubernetes Deployment Image
+      become_user: ubuntu
+      command: kubectl set image deployment/static-website node-container={{ image }}
 
-    - name: Run new container
-      command: docker run -d -p 8098:80 --restart always --name mycloud {{ image }}
+    - name: Apply Service
+      become_user: ubuntu
+      command: kubectl apply -f kubernetes/service.yml
