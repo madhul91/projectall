@@ -25,43 +25,71 @@
         groups: docker
         append: yes
 
+    - name: Reset SSH session
+      meta: reset_connection
+
+
     # -------- INSTALL MINIKUBE --------
+
     - name: Download Minikube
       get_url:
         url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
         dest: /usr/local/bin/minikube
         mode: '0755'
 
+
     # -------- INSTALL KUBECTL --------
+
     - name: Install kubectl
       snap:
         name: kubectl
         classic: yes
 
+
     # -------- START MINIKUBE --------
+
     - name: Start Minikube
       become_user: ubuntu
       command: minikube start --driver=docker --force
-      environment:
-        CHANGE_MINIKUBE_NONE_USER: true
+
 
     # -------- VERIFY CLUSTER --------
+
     - name: Check Nodes
       become_user: ubuntu
       command: kubectl get nodes
 
+
+    # -------- CREATE K8s FILES ON SERVER --------
+
+    - name: Copy Deployment File
+      copy:
+        src: ../kubernetes/deployment.yml
+        dest: /home/ubuntu/deployment.yml
+
+    - name: Copy Service File
+      copy:
+        src: ../kubernetes/service.yml
+        dest: /home/ubuntu/service.yml
+
+
     # -------- DEPLOY APP --------
+
     - name: Apply Deployment
       become_user: ubuntu
-      command: kubectl apply -f kubernetes/deployment.yml
+      command: kubectl apply -f /home/ubuntu/deployment.yml
 
     - name: Apply Service
       become_user: ubuntu
-      command: kubectl apply -f kubernetes/service.yml
+      command: kubectl apply -f /home/ubuntu/service.yml
+
+
+    # -------- UPDATE IMAGE --------
 
     - name: Update Image
       become_user: ubuntu
       command: kubectl set image deployment/static-website node-container={{ image }}
+
 
     - name: Wait for Rollout
       become_user: ubuntu
