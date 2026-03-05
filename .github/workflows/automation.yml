@@ -96,11 +96,4 @@ jobs:
         --extra-vars "image=$IMAGE_NAME:${{ github.sha }}"
 
       # 14. Deploy to Kubernetes via SSH
-    - name: Deploy to Kubernetes
-      run: |
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/first-keypair.pem ubuntu@${{ steps.tf_output.outputs.ip }} << EOF
-          kubectl set image deployment/static-website node-container=$IMAGE_NAME:${{ github.sha }} --record
-          kubectl apply -f kubernetes/deployment.yml
-          kubectl apply -f kubernetes/service.yml
-          kubectl rollout status deployment/node-app
-        EOF    
+  

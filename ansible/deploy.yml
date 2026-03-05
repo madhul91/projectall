@@ -19,20 +19,50 @@
         state: started
         enabled: true
 
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    # -------- INSTALL MINIKUBE --------
+    - name: Download Minikube
+      get_url:
+        url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        dest: /usr/local/bin/minikube
+        mode: '0755'
+
+    # -------- INSTALL KUBECTL --------
     - name: Install kubectl
       snap:
         name: kubectl
         classic: yes
 
-    - name: Start Minikube (if not running)
+    # -------- START MINIKUBE --------
+    - name: Start Minikube
       become_user: ubuntu
-      command: minikube start --driver=docker
-      ignore_errors: yes
+      command: minikube start --driver=docker --force
+      environment:
+        CHANGE_MINIKUBE_NONE_USER: true
 
-    - name: Update Kubernetes Deployment Image
+    # -------- VERIFY CLUSTER --------
+    - name: Check Nodes
       become_user: ubuntu
-      command: kubectl set image deployment/static-website node-container={{ image }}
+      command: kubectl get nodes
+
+    # -------- DEPLOY APP --------
+    - name: Apply Deployment
+      become_user: ubuntu
+      command: kubectl apply -f kubernetes/deployment.yml
 
     - name: Apply Service
       become_user: ubuntu
       command: kubectl apply -f kubernetes/service.yml
+
+    - name: Update Image
+      become_user: ubuntu
+      command: kubectl set image deployment/static-website node-container={{ image }}
+
+    - name: Wait for Rollout
+      become_user: ubuntu
+      command: kubectl rollout status deployment/static-website
