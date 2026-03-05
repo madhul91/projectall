@@ -25,9 +25,6 @@
         groups: docker
         append: yes
 
-    - name: Reset SSH session
-      meta: reset_connection
-
 
     # -------- INSTALL MINIKUBE --------
 
