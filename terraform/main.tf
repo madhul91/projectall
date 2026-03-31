@@ -22,7 +22,8 @@ data "aws_subnets" "public_subnets" {
 
 
 resource "aws_security_group" "devops_sg" {
-  name   = "devops-sg-"
+  # name   = "devops-sg-"
+  name_prefix = "portfolio-app-sg-"
   vpc_id = data.aws_vpc.default.id
 
   ingress {
