@@ -57,7 +57,7 @@
       args:
         executable: /bin/bash
 
-    
+     
 
     - name: Check Nodes
       become_user: ubuntu
