@@ -53,7 +53,7 @@
 
     - name: Start Minikube
       become_user: ubuntu
-      shell: minikube start --driver=docker
+      shell: minikube start --driver=none
       args:
         executable: /bin/bash
 
