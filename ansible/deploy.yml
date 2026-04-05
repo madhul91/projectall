@@ -1,4 +1,4 @@
-- name: Deploy App to Minikube
+- name: Deploy App to Kubernetes (kind)
   hosts: all
   become: true
 
@@ -28,42 +28,29 @@
     - name: Reset ssh connection
       meta: reset_connection
 
-    
-
-    - name: Download Minikube
-      get_url:
-        url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-        dest: /usr/local/bin/minikube
-        mode: '0755'
-
-    
+    - name: Install kind
+      shell: |
+        curl -Lo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/v0.27.0/kind-linux-amd64
+        chmod +x /usr/local/bin/kind
 
     - name: Install kubectl
-      snap:
-        name: kubectl
-        classic: yes
+      shell: |
+        curl -LO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        mv kubectl /usr/local/bin/kubectl
 
-    
+    - name: Create kind cluster
+      shell: kind create cluster --name devops-cluster --wait 90s
 
-    - name: Wait for docker
-      pause:
-        seconds: 30
-
-    
-
-    - name: Start Minikube
-      become_user: ubuntu
-      shell: minikube start --driver=none
-      args:
-        executable: /bin/bash
-
-     
+    - name: Set up kubeconfig for ubuntu user
+      shell: |
+        mkdir -p /home/ubuntu/.kube
+        kind get kubeconfig --name devops-cluster > /home/ubuntu/.kube/config
+        chown -R ubuntu:ubuntu /home/ubuntu/.kube
 
     - name: Check Nodes
       become_user: ubuntu
       command: kubectl get nodes
-
-    
 
     - name: Copy Deployment File
       copy:
@@ -74,7 +61,6 @@
       copy:
         src: ../kubernetes/service.yml
         dest: /home/ubuntu/service.yml
-
 
     - name: Apply Deployment
       become_user: ubuntu
@@ -91,3 +77,34 @@
     - name: Wait for Rollout
       become_user: ubuntu
       command: kubectl rollout status deployment/static-website
+
+
+
+
+
+ # - name: Download Minikube
+    #   get_url:
+    #     url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+    #     dest: /usr/local/bin/minikube
+    #     mode: '0755'
+
+    
+
+    # - name: Install kubectl
+    #   snap:
+    #     name: kubectl
+    #     classic: yes
+
+    
+
+    # - name: Wait for docker
+    #   pause:
+    #     seconds: 30
+
+    
+
+    # - name: Start Minikube
+    #   become_user: ubuntu
+    #   shell: minikube start --driver=none
+    #   args:
+    #     executable: /bin/bash      
